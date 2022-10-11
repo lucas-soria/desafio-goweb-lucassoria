@@ -1,48 +1,53 @@
 package tickets
 
 import (
-	"context"
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"github.com/lucas-soria/desafio-goweb-lucassoria/internal/domain"
+	"github.com/lucas-soria/desafio-goweb-lucassoria/pkg/store"
 )
 
 type Repository interface {
-	GetAll(ctx context.Context) ([]domain.Ticket, error)
-	GetTicketByDestination(ctx context.Context, destination string) ([]domain.Ticket, error)
+	GetAll(ctx *gin.Context) (ts []domain.Ticket, err error)
+	GetTicketByDestination(ctx *gin.Context, destination string) (ts []domain.Ticket, err error)
 }
 
 type repository struct {
-	db []domain.Ticket
+	db store.Store
 }
 
-func NewRepository(db []domain.Ticket) Repository {
+func NewRepository(store *store.Store) Repository {
 	return &repository{
-		db: db,
+		db: *store,
 	}
 }
 
-func (r *repository) GetAll(ctx context.Context) ([]domain.Ticket, error) {
-
-	if len(r.db) == 0 {
-		return []domain.Ticket{}, fmt.Errorf("empty list of tickets")
+func (r *repository) GetAll(ctx *gin.Context) (ts []domain.Ticket, err error) {
+	ts, err = r.db.Read()
+	if err != nil {
+		return
 	}
-
-	return r.db, nil
+	if len(ts) == 0 {
+		err = fmt.Errorf("empty list of tickets")
+		return
+	}
+	return
 }
 
-func (r *repository) GetTicketByDestination(ctx context.Context, destination string) ([]domain.Ticket, error) {
-
-	var ticketsDest []domain.Ticket
-
-	if len(r.db) == 0 {
-		return []domain.Ticket{}, fmt.Errorf("empty list of tickets")
+func (r *repository) GetTicketByDestination(ctx *gin.Context, destination string) (tsByDestination []domain.Ticket, err error) {
+	var ts []domain.Ticket
+	ts, err = r.GetAll(ctx)
+	if err != nil {
+		return
 	}
-
-	for _, t := range r.db {
-		if t.Country == destination {
-			ticketsDest = append(ticketsDest, t)
+	if destination != "" {
+		for _, t := range ts {
+			if t.Country == destination {
+				tsByDestination = append(tsByDestination, t)
+			}
 		}
+	} else {
+		tsByDestination = ts
 	}
-
-	return ticketsDest, nil
+	return
 }

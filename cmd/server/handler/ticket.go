@@ -6,42 +6,43 @@ import (
 	"net/http"
 )
 
-type Service struct {
+type Controller struct {
 	service tickets.Service
 }
 
-func NewService(s tickets.Service) *Service {
-	return &Service{
+func NewController(s tickets.Service) *Controller {
+	return &Controller{
 		service: s,
 	}
 }
 
-func (s *Service) GetTicketsByCountry() gin.HandlerFunc {
-	return func(c *gin.Context) {
-
-		destination := c.Param("dest")
-
-		tickets, err := s.service.GetTotalTickets(c, destination)
-		if err != nil {
-			c.String(http.StatusInternalServerError, err.Error(), nil)
-			return
-		}
-
-		c.JSON(200, tickets)
+func (c *Controller) GetTicketsByCountry(ctx *gin.Context) {
+	destination := ctx.Param("destination")
+	ts, err := c.service.GetTotalTickets(ctx, destination)
+	if err != nil {
+		ctx.JSON(
+			http.StatusInternalServerError,
+			gin.H{
+				"error": err.Error(),
+			},
+		)
+		return
 	}
+	ctx.JSON(http.StatusOK, ts)
+	return
 }
 
-func (s *Service) AverageDestination() gin.HandlerFunc {
-	return func(c *gin.Context) {
-
-		destination := c.Param("dest")
-
-		avg, err := s.service.AverageDestination(c, destination)
-		if err != nil {
-			c.String(http.StatusInternalServerError, err.Error(), nil)
-			return
-		}
-
-		c.JSON(200, avg)
+func (c *Controller) AverageDestination(ctx *gin.Context) {
+	destination := ctx.Param("destination")
+	avg, err := c.service.AverageDestination(ctx, destination)
+	if err != nil {
+		ctx.JSON(
+			http.StatusInternalServerError,
+			gin.H{
+				"error": err.Error(),
+			},
+		)
+		return
 	}
+	ctx.JSON(200, avg)
 }
